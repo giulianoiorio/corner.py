@@ -21,7 +21,7 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
            smooth=None, smooth1d=None,
            labels=None, label_kwargs=None,
            show_titles=False, title_fmt=".2f", title_kwargs=None,
-           truths=None, truth_color="#4682b4",
+           truths=None, truth_color="#4682b4", prior=None, prior_color='gray',
            scale_hist=False, quantiles=None, verbose=False, fig=None,
            max_n_ticks=5, top_ticks=False, use_math_text=False,
            hist_kwargs=None, **hist2d_kwargs):
@@ -88,6 +88,16 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
     truth_color : str
         A ``matplotlib`` style color for the ``truths`` makers.
 
+    prior : array_like[nsamples, ndim]
+        The prior sample or another sample that should be plotted in the diagonal panel (e.g. the starting point in emcee).
+        This should be a 1- or 2-dimensional array. For a 1-D
+        array this results in a simple histogram. For a 2-D array, the zeroth
+        axis is the list of samples and the next axis are the dimensions of
+        the space.
+
+    prior_color : str
+        A ``matplotlib`` style color for the ``prior`` histogram.
+
     scale_hist : bool
         Should the 1-D histograms be scaled in such a way that the zero line
         is visible?
@@ -137,15 +147,26 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
         except AttributeError:
             pass
 
+
+
     # Deal with 1D sample lists.
     xs = np.atleast_1d(xs)
     if len(xs.shape) == 1:
         xs = np.atleast_2d(xs)
+        if prior is not None: prior = np.atleast_2d(prior)
     else:
         assert len(xs.shape) == 2, "The input sample array must be 1- or 2-D."
         xs = xs.T
+        if prior is not None:
+            assert len(prior.shape) == 2, "The prior sample array must be 1- or 2-D."
+            prior = prior.T
+
     assert xs.shape[0] <= xs.shape[1], "I don't believe that you want more " \
                                        "dimensions than samples!"
+
+    #Check prior shape
+    if xs.shape[0]!=prior.shape[0]: raise ValueError('Data sample and prior sample have not the same dimension')
+
 
     # Parse the weight array.
     if weights is not None:
@@ -236,8 +257,9 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
             ax = axes[i, i]
         # Plot the histograms.
         if smooth1d is None:
-            n, _, _ = ax.hist(x, bins=bins[i], weights=weights,
-                              range=np.sort(range[i]), **hist_kwargs)
+            n, _, _ = ax.hist(x, bins=bins[i], weights=weights,range=np.sort(range[i]), density=True, **hist_kwargs)
+            if prior is not None: pn, _, _ = ax.hist(prior[i], bins=bins[i], weights=weights,range=np.sort(range[i]), histtype='step', color=prior_color, ls='dashed', density=True)
+            else: pn=n
         else:
             if gaussian_filter is None:
                 raise ImportError("Please install scipy for smoothing")
@@ -247,6 +269,13 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
             x0 = np.array(list(zip(b[:-1], b[1:]))).flatten()
             y0 = np.array(list(zip(n, n))).flatten()
             ax.plot(x0, y0, **hist_kwargs)
+
+            if prior is not None:
+                pn, bn = np.histogram(prior[i], bins=bins[i], weights=weights, range=np.sort(range[i]))
+                pn = gaussian_filter(pn, smooth1d)
+                px0 = np.array(list(zip(bn[:-1], bn[1:]))).flatten()
+                py0 = np.array(list(zip(pn, pn))).flatten()
+                ax.plot(px0, py0, color=prior_color, ls=dashed)
 
         if truths is not None and truths[i] is not None:
             ax.axvline(truths[i], color=truth_color)
@@ -288,10 +317,12 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
         # Set up the axes.
         ax.set_xlim(range[i])
         if scale_hist:
-            maxn = np.max(n)
+            maxn = np.nanmax((np.max(n), np.nanmax(pn)))
             ax.set_ylim(-0.1 * maxn, 1.1 * maxn)
         else:
-            ax.set_ylim(0, 1.1 * np.max(n))
+            print( np.max(n), np.nanmax(pn) )
+            maxn = np.nanmax((np.max(n), np.nanmax(pn)))
+            ax.set_ylim(0, 1.1 * maxn)
         ax.set_yticklabels([])
         if max_n_ticks == 0:
             ax.xaxis.set_major_locator(NullLocator())
