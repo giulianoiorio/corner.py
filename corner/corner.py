@@ -165,7 +165,8 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
                                        "dimensions than samples!"
 
     #Check prior shape
-    if xs.shape[0]!=prior.shape[0]: raise ValueError('Data sample and prior sample have not the same dimension')
+    if prior is not None:
+        if xs.shape[0]!=prior.shape[0]: raise ValueError('Data sample and prior sample have not the same dimension')
 
 
     # Parse the weight array.
