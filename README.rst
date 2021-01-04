@@ -12,6 +12,17 @@ corner.py
 .. image:: http://joss.theoj.org/papers/10.21105/joss.00024/status.svg?style=flat
     :target: http://dx.doi.org/10.21105/joss.00024
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+This version
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+This version of corner is a slighly modified version forked from the original `repo <https://github.com/dfm/corner.py>`_.
+The main additions are the keywords prior(=None by default) and prior_color(='gray' by default) to the function corner in corner.py.
+If prior is not None it has to be a an array with dimendion N,k where k is the number of parameters containing a sample of N data from the prior
+of the fitted parameters. The prior distributions are plotted in the corner plots as dashed histrograms with the color indicated in prior_color.
+
+
+
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 Read `the documentation <http://corner.readthedocs.io/>`_.
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
